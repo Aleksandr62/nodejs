@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        a {
+            cursor: pointer;
+        }
+
+        ul,
+        li {
+            list-style: none;
+        }
+
+        .folder {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+
+        }
+
+        .content,
+        .file {
+            display: flex;
+            flex-grow: 1;
+            max-height: 30vh;
+        }
+
+        .fileName {
+            margin: 4px 0;
+        }
+
+        .file {
+            margin-top: 4px;
+            border: 1px solid #444444;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .left {
+            flex-grow: 1;
+            padding: 4px;
+            margin-right: 4px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #444444;
+            overflow-x: auto;
+        }
+
+        .main {
+            flex-grow: 3;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #444444;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <section class="folder">
+        <h3>Каталог <span></span></h3>
+        <button onclick="fetchData('/catalog')">Домашний каталог</button>
+        <div class="content">
+            <ul class="left">
+            </ul>
+            <ul class="main">
+            </ul>
+        </div>
+        <h4 class="fileName"></h4>
+        <div class="file">
+        </div>
+    </section>
+
+</body>
+<script>
+    const catalogList = document.querySelector(".left");
+    const fileList = document.querySelector(".main");
+    const file = document.querySelector(".file");
+    const fileName = document.querySelector(".fileName");
+    const button = document.querySelector("button");
+
+    function fetchData(url) {
+        if (/\?file=.*/i.test(url)) fileName.innerHTML = url.replace(
+            /\?file=/i, 'Файл:  ')
+        fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json;charset=utf-8",
+                },
+            })
+            .then((data) => data.json())
+            .then((result) => {
+                const {
+                    catalogs,
+                    files
+                } = conversionToHTML(result)
+
+                catalogList.innerHTML = ''
+                catalogList.insertAdjacentHTML('beforeend',
+                    catalogs)
+
+                fileList.innerHTML = ''
+                fileList.insertAdjacentHTML('beforeend', files)
+
+                if (result.fileHTML) {
+                    file.innerHTML = ''
+                    file.insertAdjacentHTML('beforeend', result
+                        .fileHTML)
+                }
+            });
+    }
+
+    function conversionToHTML({
+        catalogsList,
+        filesList
+    }) {
+        let catalogs = `<li><a onclick="fetchData('?catalog=..')">..</a></li>` +
+            catalogsList.map(item => {
+                return `
+                <li><a onclick="fetchData('?catalog=${item}')">${item}</a></li>
+            `
+            }).join('')
+        let files = filesList.map(item => {
+            return `
+                <li><a onclick="fetchData('?file=${item}')">${item}</a></li>
+            `
+        }).join('')
+        return {
+            catalogs,
+            files
+        }
+    }
+</script>
+
+</html>
