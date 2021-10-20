@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Socket</title>
+    <script src="https://cdn.socket.io/4.2.0/socket.io.min.js"
+            integrity="sha384-PiBR5S00EtOj2Lto9Uu81cmoyZqR57XcOna1oAuVuIEjzj0wpqDVfD0JA9eXlRsj"
+            crossorigin="anonymous"></script>
+    <style>
+        .send {
+            position: relative;
+            width: fit-content;
+        }
+
+        #input {
+            padding: 4px;
+            outline: none;
+            border: none;
+            border-bottom: 2px solid darkblue;
+        }
+
+        #input:focus {
+            border-bottom: 2px solid darkgreen;
+        }
+
+        #input:focus~#button::before {
+            color: darkgreen;
+        }
+
+        #button {
+            position: absolute;
+            right: 0;
+            background-color: transparent;
+            border: none;
+            outline: none;
+        }
+
+        #button::before {
+            content: '\27A4';
+            font-size: 18px;
+            color: darkblue;
+        }
+
+        #messages {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #444444;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .connect {
+            text-align: center;
+            font-style: italic;
+            color: darkmagenta;
+        }
+
+        .message {
+            padding: 18px;
+            border-radius: 5px;
+            background-color: cadetblue;
+        }
+
+        .message_user {
+            width: 40%;
+            align-self: end;
+        }
+
+        .message_user[data-self="true"] {
+            align-self: start;
+        }
+
+        .message_user[data-self="true"]>.message {
+            background-color: lightblue;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="online">Онлайн: </div>
+    <div class="send">
+        <label for="input">Сообщение:</label>
+        <input id="input" type="text" autofocus>
+        <button id="button"></button>
+    </div>
+    <div id="messages"></div>
+    <script>
+        const socket = io('localhost:5555');
+        const messageBlock = document.getElementById('messages');
+        const sendButton = document.getElementById('button');
+        const online = document.getElementById('online');
+        const input = document.getElementById('input');
+        const array = Array(26).fill().map((e, i) => String.fromCodePoint(97 +
+            i))
+
+        function User(name) {
+            this.name = name
+            return this.name
+        }
+
+        function generateName(length) {
+            let name = array[Math.floor(Math.random() * array.length)]
+                .toUpperCase()
+            for (let i = 0; i < length; i += 1) {
+                name += array[Math.floor(Math.random() * array.length)]
+            }
+            return name;
+        }
+        const currentUser = new User(generateName(10))
+
+        function msgTemplate(status, message, userName) {
+            return `<div class='${status}_user'
+                        data-self='${userName === currentUser.name
+                        && status === 'message'}'>
+                    <p class='${status}_user'
+                        ${userName === currentUser.name
+                        || status !== 'message' ?
+                        'hidden': ''}
+                        >
+                        ${userName}
+                        </p>
+                    <p class='${status}'>${message}</p>
+                </div>`
+        }
+
+        function connection(user, evToServer) {
+            const data = {
+                userName: user.name,
+            };
+            socket.emit(evToServer, data);
+        }
+
+        socket.on('connect', (data) => {
+            console.log(data)
+            connection(currentUser, 'client-connect')
+        });
+
+        sendButton.onclick = () => {
+            const data = {
+                userName: currentUser.name,
+                message: input.value,
+            };
+            socket.emit('client-msg', data);
+            input.value = ''
+        }
+
+        socket.on('server-msg', ({
+            userName,
+            status,
+            users,
+            message
+        }) => {
+            online.textContent = `Онлайн: ${users}`
+            messageBlock.insertAdjacentHTML('beforeend', msgTemplate(
+                status,
+                message, userName))
+        })
+    </script>
+</body>
+
+</html>
